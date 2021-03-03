@@ -1,5 +1,6 @@
-import datetime, exiftool, getopt, shutil, sys
+import datetime, exiftool, getopt, os, shutil, sys, time
 from pathlib import Path
+from datetime import date
 
 def generate_target_dictionary(metadata):
   '''
@@ -10,11 +11,19 @@ def generate_target_dictionary(metadata):
   for source_file in metadata:
     # Use filename and containing foldeer to derive new file name
     file =  str(Path(source_file['SourceFile']).name)
+    fullpath = str(source_file['SourceFile'])
+    print (file)
     containing_folder = str(Path(source_file['SourceFile']).parent.name)
 
     # Format our exif date and time
-    date_obj = datetime.datetime.strptime(source_file['EXIF:CreateDate'], '%Y:%m:%d %H:%M:%S')
-    date_str = date.strftime(date_obj, '%Y %b %d')
+    if 'EXIF:CreateDate' in source_file:
+      date_obj = datetime.datetime.strptime(source_file['EXIF:CreateDate'], '%Y:%m:%d %H:%M:%S')
+      date_str = date.strftime(date_obj, '%Y %b %d')
+    else:
+      # Todo: Format date string properly
+      created_time = os.path.getctime(fullpath)
+      year,month,day=time.localtime(created_time)[:3]
+      date_str = ("%02d-%02d-%d"%(day,month,year))
 
     # Format new filename
     formatted_file = str(date_str) +' - ' + str(file)
@@ -89,6 +98,9 @@ def main(argv):
   lines = search_files_in_path(search_path)
 
   # Get our metadata
+  list_items = len(lines)
+  print("Image files to process :", list_items)
+
   with exiftool.ExifTool() as et:
     metadata = et.get_metadata_batch(lines)
 
