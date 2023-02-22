@@ -1,6 +1,7 @@
 import datetime, exiftool, getopt, os, shutil, sys, time
 from pathlib import Path
 from datetime import date
+import threading
 
 def generate_target_dictionary(metadata):
   '''
@@ -59,10 +60,19 @@ def process_copylist(copylist, destination):
   '''
   Copy files from dictionary source to output destination
   '''
-  for keys in copylist:
-    source =  copylist[keys]['source']
-    new_file = copylist[keys]['dest_file']
-    subdir = copylist[keys]['containing_folder']
+  threads = []
+  for items in copylist:
+    thread = threading.Thread(target=write_new_files, args=(copylist[items],destination))
+    threads.append(thread)
+    thread.start()
+
+    for thread in threads:
+        thread.join()
+
+def write_new_files(items, destination):
+    source = items['source']
+    new_file = items['dest_file']
+    subdir = items['containing_folder']
 
     output_path = Path( destination + '/' + subdir )
     target = str(output_path) + '/' + new_file
